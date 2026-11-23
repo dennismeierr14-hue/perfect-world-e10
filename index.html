@@ -11,6 +11,7 @@
   --navy:#1E2B45; --navy2:#2A3B5E; --grid:rgba(238,242,248,.08); --chalk:#EEF2F8; --sun:#F2C14E;
   --accent:#2D6CB5; --accent-soft:#E6EFFA; --price:#B24A26; --price-soft:#FBEDE6;
   --ok:#1F7A4D; --ok-soft:#E4F3EA;
+  --btn:#1E2B45; --btn-ink:#EEF2F8; --btn-hover:#2A3B5E; --pay:#B24A26; --pay-ink:#FFFFFF; --edge:#7D8492;
   --display:"Avenir Next","Avenir","Segoe UI",system-ui,sans-serif;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   color-scheme:light;
@@ -21,6 +22,7 @@
     --navy:#18233A; --navy2:#22324F; --grid:rgba(232,237,246,.07); --chalk:#E8EDF6; --sun:#F5CB66;
     --accent:#8AB6EE; --accent-soft:#1D2A3D; --price:#F29A78; --price-soft:#38231B;
     --ok:#6FD39E; --ok-soft:#163024;
+    --btn:#8AB6EE; --btn-ink:#11151D; --btn-hover:#A6C8F3; --pay:#F29A78; --pay-ink:#11151D; --edge:#7C8599;
     color-scheme:dark;
   }
 }
@@ -86,12 +88,12 @@ h3{font:700 1.08rem/1.3 var(--display);margin:1.4rem 0 .4rem}
 .price .pl{display:block;font:700 .95rem/1.2 var(--display);color:var(--price);margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.06em}
 .card.kept .price{opacity:.75}
 .acts{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:auto;padding-top:.2rem}
-.btn{appearance:none;border:2px solid transparent;background:var(--navy);color:var(--chalk);border-radius:999px;padding:.55rem 1.2rem;font:700 1.02rem/1.2 var(--display);cursor:pointer;min-height:48px}
-.btn:hover{background:var(--navy2)}
-.btn.pay{background:var(--price);color:#fff}
+.btn{appearance:none;border:2px solid transparent;background:var(--btn);color:var(--btn-ink);border-radius:999px;padding:.55rem 1.2rem;font:700 1.02rem/1.2 var(--display);cursor:pointer;min-height:48px}
+.btn:hover{background:var(--btn-hover)}
+.btn.pay{background:var(--pay);color:var(--pay-ink)}
 .btn.pay:hover{filter:brightness(1.08)}
-.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
-.btn.ghost:hover{border-color:var(--muted)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--edge)}
+.btn.ghost:hover{border-color:var(--ink)}
 .btn.small{min-height:44px;padding:.4rem 1rem;font-size:.95rem}
 
 /* Worterklärungen */
@@ -226,7 +228,7 @@ footer .row{justify-content:space-between}
   </div>
   <p class="lab">Help me start</p>
   <div class="chips" id="starters"></div>
-  <p class="lab">Word bank – tap to add</p>
+  <p class="lab">Word bank – tap to add (★ = level up)</p>
   <div class="chips" id="bank"></div>
   <label class="lab" for="text">My text</label>
   <textarea id="text" spellcheck="true" placeholder="If I lived in my perfect world, …"></textarea>
@@ -246,13 +248,13 @@ footer .row{justify-content:space-between}
   <div class="th"><span class="num">5</span><h2>Read on: The Giver<small>with your book</small></h2></div>
   <p>In the novel <i>The Giver</i> by the American writer Lois Lowry (1993), a boy called Jonas lives in a <button type="button" class="g" aria-expanded="false" data-de="Gemeinschaft">community</button> that has removed many problems of our world.</p>
   <p class="book">📖 Open your book on page 22. Read the introduction and do task 1 (Before you read).</p>
-  <div class="lens"><b>While you read, look out:</b>Which problems has Jonas' community removed? What price do the people pay?</div>
+  <div class="lens"><b>While you read, think about this:</b> Which problems has Jonas' community removed? What price do the people pay?</div>
 </section>
 </main>
 
 <footer>
   <div class="row">
-    <span>Your answers are saved on this device only. Nobody else can see them.</span>
+    <span>Your answers are saved in this browser only. Sharing an iPad? Tap Start again when you are done.</span>
     <button type="button" class="btn ghost small" id="reset">Start again</button>
   </div>
 </footer>
@@ -307,6 +309,9 @@ var BANK = [
   {en:'however', de:'jedoch', ins:'However, ', lvl:1, m:/\bhowever\b/i}
 ];
 var PAST = {was:1, were:1, had:1, did:1, could:1, got:1, went:1, saw:1, took:1, made:1, knew:1, felt:1, thought:1, came:1, gave:1, lost:1, paid:1, chose:1, kept:1, left:1, met:1, found:1, told:1, said:1, ran:1, ate:1, wrote:1, read:1, spent:1, bought:1, sold:1, became:1, began:1, wore:1};
+
+var PP = {known:1, been:1, seen:1, done:1, had:1, gone:1, given:1, taken:1, made:1, paid:1, chosen:1, thought:1, felt:1, lost:1, got:1, gotten:1, kept:1, left:1, met:1, found:1, told:1, said:1, bought:1, become:1, begun:1, eaten:1, written:1, read:1, spent:1};
+function norm(w){ return String(w).toLowerCase().replace(/’/g, "'").replace(/[^a-z']/g, ''); }
 
 var S = {d:{}, r:{}, vote:'', text:'', lvl:''};
 var $ = function(id){ return document.getElementById(id); };
@@ -411,11 +416,14 @@ function analyse(text){
     var re = /\bif\b/gi, m;
     while ((m = re.exec(seg))) {
       var clause = seg.slice(m.index + 2).split(/[,;:\u2013\u2014]/)[0];
-      var toks = clause.trim().split(/\s+/).filter(Boolean).slice(0, 5);
-      for (var i = 0; i < toks.length; i++) {
-        var t = toks[i].toLowerCase().replace(/[^a-z'\u2019]/g, '');
-        if (t === 'would' || /^[a-z]+['\u2019]d$/.test(t)) { wouldInIf++; break; }
-        if (PAST[t] || /ed$/.test(t)) break;
+      // would steht im if-Teil nur direkt nach dem Subjekt (If I / If people / If the government would \u2026);
+      // ohne Komma l\u00e4uft der if-Teil sonst in den Hauptsatz (Pr\u00fcfung 23.11.)
+      var toks = clause.trim().split(/\s+/).filter(Boolean).slice(0, 4);
+      for (var i = 0; i < toks.length && i <= 2; i++) {
+        var t = norm(toks[i]);
+        if (t === 'would' || t === "wouldn't" || t === 'wouldnt' || t === "would've") { wouldInIf++; break; }
+        if (/^[a-z]+'d$/.test(t)) { var nx = norm(toks[i + 1] || ''); if (!(PP[nx] || /ed$/.test(nx))) wouldInIf++; break; }   // I'd known = I had known
+        if (PAST[t] || /ed$/.test(t) || /n't$/.test(t)) break;
       }
     }
   });
@@ -433,7 +441,7 @@ function feedback(){
   if (a.wouldInIf) add(false, 'Check your if-part: no <i>would</i> after <i>if</i>. Write <i>If I lived there, \u2026</i> \u2013 not <i>If I would live there, \u2026</i>');
   if (a.ifWithoutWould) add(false, 'Your if-clause needs a <i>would</i>-part: <i>If \u2026, I would \u2026</i>');
   add(a.contrast > 0, a.contrast > 0 ? 'You show both sides (<i>but, however, although</i>).' : 'Show both sides: <i>\u2026 safe, but \u2026</i>');
-  add(a.bank.length > 0, a.bank.length ? 'Level-up words: ' + a.bank.map(esc).join(', ') + '.' : 'Try a level-up word from the word bank (yellow).');
+  add(a.bank.length > 0, a.bank.length ? 'Level-up words: ' + a.bank.map(esc).join(', ') + '.' : 'Try a level-up word from the word bank (★).');
   $('fb').innerHTML = out.join('');
 }
 function updateCount(){
@@ -456,7 +464,7 @@ function insert(s){
 function build(){
   $('cards').innerHTML = P.map(function(p){ return '<article class="card" id="c-' + p.id + '" aria-labelledby="h-' + p.id + '"></article>'; }).join('');
   $('starters').innerHTML = STARTERS.map(function(s, i){ return '<button type="button" class="chip" data-start="' + i + '">' + esc(s) + '</button>'; }).join('');
-  $('bank').innerHTML = BANK.map(function(b, i){ return '<button type="button" class="chip' + (b.lvl ? ' lvl' : '') + '" data-bank="' + i + '">' + esc(b.en) + '<small>' + esc(b.de) + '</small></button>'; }).join('');
+  $('bank').innerHTML = BANK.map(function(b, i){ return '<button type="button" class="chip' + (b.lvl ? ' lvl' : '') + '" data-bank="' + i + '">' + (b.lvl ? '★ ' : '') + esc(b.en) + '<small>' + esc(b.de) + '</small></button>'; }).join('');
 }
 function renderAll(){
   IDS.forEach(function(id){ renderCard(id); });
